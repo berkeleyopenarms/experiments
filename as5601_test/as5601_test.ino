@@ -2,12 +2,28 @@
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(19200);
+  Serial.begin(115200);
   Wire.begin();
 }
 
 void loop() {
-  selector(6);
+ for (uint8_t channel = 4; channel <= 7; channel++) {
+    Serial.print(channel);
+    Serial.print(":\t");
+    Serial.println(readEncoder(channel));
+  }
+  delay(50);
+  Serial.println();
+//  Serial.println(readEncoder(7));
+//  delay(50);
+}
+
+int16_t readEncoder(uint8_t channel) {
+  if (channel > 7) return;
+  Wire.beginTransmission(0x70);
+  Wire.write(1 << channel);
+  Wire.endTransmission();
+
   int16_t reading;
   Wire.beginTransmission(0x36);       // transmit to device as5601
   Wire.write(byte(0x0E));             // sets register pointer 
@@ -17,13 +33,5 @@ void loop() {
   reading = Wire.read();             // receive high byte 
   reading = reading << 8;            // shift high byte to be high 8 bits
   reading |= Wire.read();            // receive low byte as lower 8 bits
-  Serial.println(reading);
-
-  delay(100);
-}
-void selector(int i) {
-  if (i>7) return;
-  Wire.beginTransmission(0x70);
-  Wire.write(1<<i);
-  Wire.endTransmission();
+  return reading;
 }
