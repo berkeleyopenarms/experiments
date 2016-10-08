@@ -1,9 +1,7 @@
-#include <TimerThree.h>
-
-#define PIN_HLFB 2
-#define PIN_B 3
-#define PIN_A 4
-#define PIN_ENABLE 5
+#define PIN_HLFB 22
+#define PIN_B 24
+#define PIN_A 26
+#define PIN_ENABLE 28
 #define PIN_LED 13
 
 void setup() {
