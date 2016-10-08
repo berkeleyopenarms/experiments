@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-Clearpath::Clearpath(uint8_t a, uint8_t b, uint8_t enable)
+Clearpath::Clearpath(uint8_t hlfb, uint8_t b, uint8_t a, uint8_t enable)
   : _pin_a(a), _pin_b(b), _pin_enable(enable)
 {
   pinMode(a, OUTPUT);

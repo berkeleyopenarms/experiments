@@ -1,12 +1,20 @@
-#include <TimerThree.h>
+#include <TimerOne.h>
 #include <stdint.h>
 #include <Wire.h>
 
 #include "Clearpath.h"
 
+
+/*
+ * elbow channel 7: 2365-3805
+ * roll channel 6: 2330-10
+ * lift channel 5: 150-2000
+ * swing channel 4: 1580 - 2350
+ */
+
 Clearpath* motors[] = {
   //new Clearpath(17, 16, 18),  
-  new Clearpath(4, 3, 5)
+  new Clearpath(22, 24, 26, 28)
 };
 
 void setup() {
@@ -20,9 +28,9 @@ void setup() {
   Serial.println("Begin");
   motors[0]->init_encoders(0, 20, 1100, true);
 
-  Timer3.initialize(10000);
+  Timer1.initialize(10000);
   //Timer3.initialize(1000000);
-  Timer3.attachInterrupt(pulse);
+  Timer1.attachInterrupt(pulse);
 }
 
 uint8_t index = 0;

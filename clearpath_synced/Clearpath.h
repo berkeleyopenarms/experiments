@@ -35,7 +35,7 @@ class Clearpath
     int64_t _position;
     static int8_t _signum(int64_t n);
   //public:
-    Clearpath(uint8_t a, uint8_t b, uint8_t enable);
+    Clearpath(uint8_t hlfb, uint8_t b, uint8_t a, uint8_t enable);
     int64_t setpoint;
     uint16_t absolute_setpoint;
     bool init_encoders(uint8_t channel, uint16_t soft_min, uint16_t soft_max, bool invert);
