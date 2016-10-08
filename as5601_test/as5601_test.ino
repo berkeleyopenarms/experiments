@@ -10,7 +10,7 @@ void loop() {
  for (uint8_t channel = 4; channel <= 7; channel++) {
     Serial.print(channel);
     Serial.print(":\t");
-    Serial.println(readEncoder(channel));
+    Serial.println(((uint32_t) readEncoder(channel) * 6283 / 4095));
   }
   delay(50);
   Serial.println();

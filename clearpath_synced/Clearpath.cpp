@@ -110,7 +110,7 @@ void Clearpath::update() {
   //hlfb = digitalRead(_pin_hlfb);
   distance = (signed)absolute_setpoint - (signed)_absolute_position;
   step_offset = abs(distance) / _encoder_ticks_per_step;
-  if (absolute_setpoint == -1 || step_offset == 0) {
+  if (absolute_setpoint == -1 || step_offset == 0 || _absolute_position < 0 || _absolute_position >= 4048) {
     //Serial.println('.');
     _lookahead_position = _absolute_position;
     _current_enable = 1;
