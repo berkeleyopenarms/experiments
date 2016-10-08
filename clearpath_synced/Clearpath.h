@@ -10,12 +10,14 @@
 class Clearpath
 {
   public:
+    const uint8_t _pin_hlfb;
     const uint8_t _pin_a;
     const uint8_t _pin_b;
     const uint8_t _pin_enable;
 
     int16_t distance;
     uint16_t step_offset;
+    bool hlfb;
 
     uint8_t _counter;
   

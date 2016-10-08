@@ -4,8 +4,9 @@
 #include <Wire.h>
 
 Clearpath::Clearpath(uint8_t hlfb, uint8_t b, uint8_t a, uint8_t enable)
-  : _pin_a(a), _pin_b(b), _pin_enable(enable)
+  : _pin_hlfb(hlfb), _pin_a(a), _pin_b(b), _pin_enable(enable)
 {
+  pinMode(hlfb, INPUT_PULLUP);
   pinMode(a, OUTPUT);
   pinMode(b, OUTPUT);
   pinMode(enable, OUTPUT);
@@ -86,7 +87,10 @@ bool Clearpath::init_encoders(uint8_t channel, uint16_t soft_min, uint16_t soft_
 }
 
 void Clearpath::_read_encoder() {
-  // TODO: channel selection
+  if (_encoder_channel == -1) return;
+  Wire.beginTransmission(0x70);
+  Wire.write(1 << _encoder_channel);
+  Wire.endTransmission();
 
   int16_t reading;
   Wire.beginTransmission(0x36);       // transmit to device as5601
@@ -102,15 +106,18 @@ void Clearpath::_read_encoder() {
 }
 
 void Clearpath::update() {
-  distance = (signed)absolute_setpoint - (signed)_lookahead_position;
+
+  //hlfb = digitalRead(_pin_hlfb);
+  distance = (signed)absolute_setpoint - (signed)_absolute_position;
   step_offset = abs(distance) / _encoder_ticks_per_step;
-  if (step_offset == 0) {
+  if (absolute_setpoint == -1 || step_offset == 0) {
     //Serial.println('.');
     _lookahead_position = _absolute_position;
     _current_enable = 1;
     digitalWrite(_pin_enable, HIGH);
     return;    
   }
+  hlfb = 0;
 
   if ((_current_a && distance > 0)
       || (!_current_a && distance < 0)) {
@@ -121,16 +128,17 @@ void Clearpath::update() {
     digitalWrite(_pin_enable, _current_enable);
 
     // don't increment immediately if we're changing direction
+    hlfb = 1;
     return;
   }
 
-  uint8_t queue_length = abs((signed)_lookahead_position - (signed)_absolute_position) / _encoder_ticks_per_step;
+  /*uint8_t queue_length = abs((signed)_lookahead_position - (signed)_absolute_position) / _encoder_ticks_per_step;
   if (_current_enable &&
     queue_length >= _pulse_queue_length) {
     return;
-  }
+  }*/
 
-  _lookahead_position += _signum(distance) * _current_enable * _encoder_ticks_per_step;
+  //_lookahead_position += _signum(distance) * _current_enable * _encoder_ticks_per_step;
   _current_enable = !_current_enable;
   digitalWrite(_pin_enable, _current_enable);
   
