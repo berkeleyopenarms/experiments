@@ -120,7 +120,8 @@ void loop() {
     //encoder * 6283 / 4095 - motor_zeros[i] = (Position.data[i] * motor_dir[i]))
     //(encoder * 6283 / 4095 - motor_zeros[i]) / motor_dir[i] % 6283 = Position.data[i]
 
-    int_array.data[i + 1] = ((long) motors[i]->absolute_position * 6283 / 4095 - motor_zeros[i]) / motor_dir[i] % 6283;
+    //int_array.data[i + 1] = (int16_t)((((long) motors[i]->absolute_position * (long)6283) / (long)4095 - (long)motor_zeros[i]) * (long)motor_dir[i]);
+    int_array.data[i + 1] = (int16_t) ( (long) motors[i]->absolute_position * (6283.0f / 4095.0f) - motor_zeros[i]) * motor_dir[i];
   }
 
   int_array.data_length = 5;
