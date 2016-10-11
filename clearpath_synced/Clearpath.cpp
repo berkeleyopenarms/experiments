@@ -106,6 +106,8 @@ void Clearpath::_read_encoder() {
 }
 
 void Clearpath::update() {
+  _absolute_setpoint = min(soft_min);
+  _absolute_setpoint = min(soft_max);
 
   //hlfb = digitalRead(_pin_hlfb);
   distance = (signed)absolute_setpoint - (signed)_absolute_position;
