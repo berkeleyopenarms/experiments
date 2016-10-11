@@ -4,92 +4,86 @@
 #include <Wire.h>
 
 Clearpath::Clearpath(uint8_t hlfb, uint8_t b, uint8_t a, uint8_t enable)
-  : _pin_hlfb(hlfb), _pin_a(a), _pin_b(b), _pin_enable(enable)
+  : pin_hlfb_(hlfb), pin_a_(a), pin_b_(b), pin_enable_(enable)
 {
   pinMode(hlfb, INPUT_PULLUP);
   pinMode(a, OUTPUT);
   pinMode(b, OUTPUT);
   pinMode(enable, OUTPUT);
 
-  _position = 0;
-  setpoint = 0;
-  _encoder_channel = -1;
-  _pulse_queue_length = 2;
+  encoder_channel_ = -1;
 
-  _invert_direction = false;
+  invert_direction_ = false;
 
-  _current_a = false;
-  _current_b = false;
-  _current_enable = false;
-  digitalWrite(a, _current_a);
-  digitalWrite(b, _current_b);
-  digitalWrite(enable, !_current_enable);
-
-  _counter = 0;
+  current_a_ = false;
+  current_b_ = false;
+  current_enable_ = false;
+  digitalWrite(a, current_a_);
+  digitalWrite(b, current_b_);
+  digitalWrite(enable, !current_enable_);
 }
 
 bool Clearpath::init_encoders(uint8_t channel, uint16_t soft_min, uint16_t soft_max, bool invert) {
-  _soft_min = soft_min;
-  _soft_max = soft_max;
-  _encoder_channel = channel;
-  _invert_direction = invert;
+  soft_min_ = soft_min;
+  soft_max_ = soft_max;
+  encoder_channel_ = channel;
+  invert_direction_ = invert;
 
-  _read_encoder();
-  
-  if(abs((signed)soft_min - (signed)_absolute_position) > abs((signed)soft_max - (signed)_absolute_position)) {
+  read_encoder();
+
+  if(abs((signed)soft_min - (signed)absolute_position) > abs((signed)soft_max - (signed)absolute_position)) {
     // we're closer to the max than the min, so we should calibrate in the negative direction (move towards min)
-    _current_a = true;
+    current_a_ = true;
   } else {
-    _current_a = false;  
+    current_a_ = false;
   }
     // TODO: refactor direction setting -- "current_a" is too confusing
-  digitalWrite(_pin_a, _current_a ^ _invert_direction);
+  digitalWrite(pin_a_, current_a_ ^ invert_direction_);
   delay(10);
-  
+
   Serial.println("backlash stuff..");
   for (int i = 0; i < 3; i++) {
     // move a bit to shave off any backlash/slop
-    digitalWrite(_pin_enable, LOW);
+    digitalWrite(pin_enable_, LOW);
     delay(10);
-    digitalWrite(_pin_enable, HIGH);
+    digitalWrite(pin_enable_, HIGH);
     delay(10);
   }
   Serial.println("start stuff..");
   int32_t start;
   do {
     //wait for value to stabilize
-    start = _absolute_position;
+    start = absolute_position;
     delay(200);
-    _read_encoder();
-  } while(start != _absolute_position);
+    read_encoder();
+  } while(start != absolute_position);
   Serial.println("stop stuff..");
   for (int i = 0; i < 40; i++) {
     // move 20 steps
-    digitalWrite(_pin_enable, LOW);
+    digitalWrite(pin_enable_, LOW);
     delay(10);
-    digitalWrite(_pin_enable, HIGH);
+    digitalWrite(pin_enable_, HIGH);
     delay(10);
   }
   int32_t stop;
   do {
     //wait for value to stabilize
-    stop = _absolute_position;
+    stop = absolute_position;
     delay(200);
-    _read_encoder();
-  } while(stop != _absolute_position);
-  _encoder_ticks_per_step = abs(stop - start) / 20.0;
-  Serial.println(_encoder_ticks_per_step);
+    read_encoder();
+  } while(stop != absolute_position);
+  encoder_ticks_per_step_ = abs(stop - start) / 20.0;
+  Serial.println(encoder_ticks_per_step_);
 
-  absolute_setpoint = _absolute_position;
-  _lookahead_position = _absolute_position;
+  absolute_setpoint = absolute_position;
   Serial.println(absolute_setpoint);
   return true;
 }
 
-void Clearpath::_read_encoder() {
-  if (_encoder_channel == -1) return;
+void Clearpath::read_encoder() {
+  if (encoder_channel_ == -1) return;
   Wire.beginTransmission(0x70);
-  Wire.write(1 << _encoder_channel);
+  Wire.write(1 << encoder_channel_);
   Wire.endTransmission();
 
   int16_t reading;
@@ -102,84 +96,34 @@ void Clearpath::_read_encoder() {
   reading = reading << 8;            // shift high byte to be high 8 bits
   reading |= Wire.read();            // receive low byte as lower 8 bits
 
-  _absolute_position = reading;
+  absolute_position = reading;
 }
 
 void Clearpath::update() {
-  _absolute_setpoint = min(soft_min);
-  _absolute_setpoint = min(soft_max);
+  absolute_position = min(max(soft_min_, absolute_position), soft_max_);
 
   //hlfb = digitalRead(_pin_hlfb);
-  distance = (signed)absolute_setpoint - (signed)_absolute_position;
-  step_offset = abs(distance) / _encoder_ticks_per_step;
-  if (absolute_setpoint == -1 || step_offset == 0 || _absolute_position < 0 || _absolute_position >= 4048) {
+  int16_t distance = (signed)absolute_setpoint - (signed)absolute_position;
+  int16_t step_offset = abs(distance) / encoder_ticks_per_step_;
+  if (absolute_setpoint == -1 || step_offset == 0 || absolute_position < 0 || absolute_position >= 4048) {
     //Serial.println('.');
-    _lookahead_position = _absolute_position;
-    _current_enable = 1;
-    digitalWrite(_pin_enable, HIGH);
-    return;    
-  }
-  hlfb = 0;
-
-  if ((_current_a && distance > 0)
-      || (!_current_a && distance < 0)) {
-    _current_a = !_current_a;
-    digitalWrite(_pin_a, _current_a ^ _invert_direction);
-
-    _current_enable = 1;
-    digitalWrite(_pin_enable, _current_enable);
-
-    // don't increment immediately if we're changing direction
-    hlfb = 1;
+    current_enable_ = 1;
+    digitalWrite(pin_enable_, HIGH);
     return;
   }
 
-  /*uint8_t queue_length = abs((signed)_lookahead_position - (signed)_absolute_position) / _encoder_ticks_per_step;
-  if (_current_enable &&
-    queue_length >= _pulse_queue_length) {
-    return;
-  }*/
+  if ((current_a_ && distance > 0)
+      || (!current_a_ && distance < 0)) {
+    current_a_ = !current_a_;
+    digitalWrite(pin_a_, current_a_ ^ invert_direction_);
 
-  //_lookahead_position += _signum(distance) * _current_enable * _encoder_ticks_per_step;
-  _current_enable = !_current_enable;
-  digitalWrite(_pin_enable, _current_enable);
-  
-  
-  /*
-  //offset = setpoint - position;
-  if (setpoint == _position) {
-    _current_enable = 1;
-    digitalWrite(_pin_enable, HIGH);
-    return;
-  }
-  int64_t error = setpoint - _position;
-
-  // TODO: refactor/abstract direction setting
-  // A should be pulled low to move in the position direction
-  // or high to move in the negative
-  // invert these values if _invert_direction = true
-  if ((_current_a && error > 0)
-      || (!_current_a && error < 0)) {
-    _current_a = !_current_a;
-    digitalWrite(_pin_a, _current_a ^ _invert_direction);
-
-    _current_enable = 1;
-    digitalWrite(_pin_enable, _current_enable);
+    current_enable_ = 1;
+    digitalWrite(pin_enable_, current_enable_);
 
     // don't increment immediately if we're changing direction
     return;
   }
 
-  // shift our position one step towards 0, but only if we're
-  // about to pull the enable line down low
-  _position += _signum(error) * _current_enable;
-
-  _current_enable = !_current_enable;
-  digitalWrite(_pin_enable, _current_enable);*/
-}
-
-int8_t Clearpath::_signum(int64_t n) {
-  if (n < 0) return -1;
-  if (n > 0) return 1;
-  return 0;
+  current_enable_ = !current_enable_;
+  digitalWrite(pin_enable_, current_enable_);
 }

@@ -9,41 +9,28 @@
 
 class Clearpath
 {
-  public:
-    const uint8_t _pin_hlfb;
-    const uint8_t _pin_a;
-    const uint8_t _pin_b;
-    const uint8_t _pin_enable;
-
-    int16_t distance;
-    uint16_t step_offset;
-    bool hlfb;
-
-    uint8_t _counter;
+  private:
+    const uint8_t pin_hlfb_;
+    const uint8_t pin_a_;
+    const uint8_t pin_b_;
+    const uint8_t pin_enable_;
   
-    int8_t _encoder_channel;
-    float _encoder_ticks_per_step;
-    int16_t _soft_min;
-    int16_t _soft_max;
-    bool _invert_direction;
-    uint16_t _absolute_position;
-    float _lookahead_position;
+    int8_t encoder_channel_;
+    float encoder_ticks_per_step_;
+    int16_t soft_min_;
+    int16_t soft_max_;
+    bool invert_direction_;
 
-    uint8_t _pulse_queue_length;
-
-    bool _current_a;
-    bool _current_b;
-    bool _current_enable;
-    int64_t _position;
-    static int8_t _signum(int64_t n);
-  //public:
+    bool current_a_;
+    bool current_b_;
+    bool current_enable_;
+  public:
     Clearpath(uint8_t hlfb, uint8_t b, uint8_t a, uint8_t enable);
-    int64_t setpoint;
     uint16_t absolute_setpoint;
+    uint16_t absolute_position;
     bool init_encoders(uint8_t channel, uint16_t soft_min, uint16_t soft_max, bool invert);
     void update();
-    void test(bool x);
-    void _read_encoder();
+    void read_encoder();
 };
 
 #endif
