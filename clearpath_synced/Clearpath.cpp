@@ -23,14 +23,14 @@ Clearpath::Clearpath(uint8_t hlfb, uint8_t b, uint8_t a, uint8_t enable)
   digitalWrite(enable, !current_enable_);
 }
 
-bool Clearpath::init_encoders(uint8_t channel, uint16_t soft_min, uint16_t soft_max, bool invert) {
+bool Clearpath::init_encoders(uint8_t channel, uint16_t soft_min, uint16_t soft_max, bool invert, bool move_motor) {
   soft_min_ = soft_min;
   soft_max_ = soft_max;
   encoder_channel_ = channel;
   invert_direction_ = invert;
 
   read_encoder();
-
+  if (move_motor) {
   if(abs((signed)soft_min - (signed)absolute_position) > abs((signed)soft_max - (signed)absolute_position)) {
     // we're closer to the max than the min, so we should calibrate in the negative direction (move towards min)
     current_a_ = true;
@@ -77,6 +77,7 @@ bool Clearpath::init_encoders(uint8_t channel, uint16_t soft_min, uint16_t soft_
 
   absolute_setpoint = absolute_position;
   Serial.println(absolute_setpoint);
+  }
   return true;
 }
 
@@ -100,7 +101,7 @@ void Clearpath::read_encoder() {
 }
 
 void Clearpath::update() {
-  absolute_position = min(max(soft_min_, absolute_position), soft_max_);
+  absolute_setpoint = min(max(soft_min_, absolute_setpoint), soft_max_);
 
   //hlfb = digitalRead(_pin_hlfb);
   int16_t distance = (signed)absolute_setpoint - (signed)absolute_position;

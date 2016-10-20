@@ -28,7 +28,7 @@ class Clearpath
     Clearpath(uint8_t hlfb, uint8_t b, uint8_t a, uint8_t enable);
     uint16_t absolute_setpoint;
     uint16_t absolute_position;
-    bool init_encoders(uint8_t channel, uint16_t soft_min, uint16_t soft_max, bool invert);
+    bool init_encoders(uint8_t channel, uint16_t soft_min, uint16_t soft_max, bool invert, bool move_motor);
     void update();
     void read_encoder();
 };
