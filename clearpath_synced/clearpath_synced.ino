@@ -1,4 +1,4 @@
-#include <ros.h>
+:q#include <ros.h>
 #include <std_msgs/Int16MultiArray.h> // the input data, an int array with 11 entries [Swing_Gravity(mN), Lifting_gravity(mN), Roll_Gravity(mN), Elbow_gravity, .. the corresponding position]
 #include <std_msgs/Int16.h>
 
@@ -29,7 +29,7 @@ Clearpath* motors[] = {
   new Clearpath(46, 48, 50, 52) // elbow
 };
 
-uint32_t motor_zeros  [4] = {
+int32_t motor_zeros  [4] = {
   3456,
   1506,
   1276,
@@ -38,7 +38,7 @@ uint32_t motor_zeros  [4] = {
 
 
 int8_t motor_dir  [4] = {
-  1,
+  -1,
   1,
   -1,
   -1
@@ -62,11 +62,11 @@ void motor_control(const std_msgs::Int16MultiArray& Position) {
   motors[i]->absolute_setpoint = ((motor_zeros[i] + Position.data[i] * motor_dir[i]) % 6283) * 4095 / 6283;
   //}
   i = ROLL;
-  motors[i]->absolute_setpoint = ((motor_zeros[i] + Position.data[i] * motor_dir[i]) % 6283) * 4095 / 6283;
+  //motors[i]->absolute_setpoint = ((motor_zeros[i] + Position.data[i] * motor_dir[i]) % 6283) * 4095 / 6283;
   i = LIFT;
   motors[i]->absolute_setpoint = ((motor_zeros[i] + Position.data[i] * motor_dir[i]) % 6283) * 4095 / 6283;
 
-  int_msg.data = 10;
+  int_msg.data = motors[LIFT]->absolute_setpoint;
   debug.publish(&int_msg);
 }
 
@@ -86,19 +86,19 @@ void setup() {
   Wire.begin();
 
   //swing
-  //motors[SWING]->init_encoders(4, 1580, 2350, true);
-  //motors[SWING]->absolute_setpoint = 2200;
+  motors[SWING]->init_encoders(4, 1580, 2350, true, false);
+  motors[SWING]->absolute_setpoint = 2200;
 
   //lift
-  motors[LIFT]->init_encoders(5, 150, 2000, true);
+  motors[LIFT]->init_encoders(5, 150, 2000, true, true);
   motors[LIFT]->absolute_setpoint = 979;
 
   //roll
-  motors[ROLL]->init_encoders(6, 10, 2330, false);
+  motors[ROLL]->init_encoders(6, 10, 2330, false, false);
   motors[ROLL]->absolute_setpoint = 1800;
 
   //elbow
-  motors[ELBOW]->init_encoders(7, 2365, 3805, true);
+  motors[ELBOW]->init_encoders(7, 2365, 3805, true, true);
   motors[ELBOW]->absolute_setpoint = 2500;
 
   Timer1.initialize(10000);
@@ -111,7 +111,7 @@ void setup() {
 
 void loop() {
   int_array.data[0] = 0; // first element apparently gets borked
-  for (uint8_t i = 0; i < sizeof(motors) / sizeof(motors[0]); i++) {
+  for (uint8_t i = 0; i < 4; i++) {
     motors[i]->read_encoder();
 
     //algebra:
@@ -121,7 +121,9 @@ void loop() {
     //(encoder * 6283 / 4095 - motor_zeros[i]) / motor_dir[i] % 6283 = Position.data[i]
 
     //int_array.data[i + 1] = (int16_t)((((long) motors[i]->absolute_position * (long)6283) / (long)4095 - (long)motor_zeros[i]) * (long)motor_dir[i]);
-    int_array.data[i + 1] = (int16_t) ( (long) motors[i]->absolute_position * (6283.0f / 4095.0f) - motor_zeros[i]) * motor_dir[i];
+    //int_array.data[i + 1] = (int16_t) (( ((float) motors[i]->absolute_position) * (6283.0f / 4095.0f) - (float)motor_zeros[i]) * (float)motor_dir[i]);
+    //int_array.data[i + 1] = (int16_t) ( (((float) motors[i]->absolute_position) * (6283.0f / 4095.0f) - motor_zeros[i]) / 1000.0f);
+    int_array.data[i + 1] = (int16_t)  motors[i]->absolute_position;// - motor_zeros[i];
   }
 
   int_array.data_length = 5;
