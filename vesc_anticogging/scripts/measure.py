@@ -22,7 +22,11 @@ class measure(object):
       rospy.sleep(1)
 
    def state_callback(self, data):
-      flag = self.handler.push_measurement(data.state.current_motor)
+      current = data.state.current_motor
+      if data.state.duty_cycle < 0:
+         current *= -1
+
+      flag = self.handler.push_measurement(current)
       if flag:
          self.count += 1
 
