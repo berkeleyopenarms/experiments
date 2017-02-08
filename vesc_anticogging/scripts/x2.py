@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 
 def sketchy_filter(data):
    window = 2
-   for i in range(window, len(data) - window):
+   for i in range(len(data)):
       data[i] = list(data[i])
       for j in range(1, window + 1):
-         data[i][0] += data[i - j][0]
-         data[i][0] += data[i + j][0]
+         data[i][0] += data[(i - j) % len(data)][0]
+         data[i][0] += data[(i + j) % len(data)][0]
       data[i][0] /= window * 2 + 1
 
 def sketchy_filter_bins(data):
@@ -21,7 +21,7 @@ def sketchy_filter_bins(data):
       data[i] /= window * 2 + 1
 
 def discretify(input):
-   bins = 360
+   bins = 360 * 4
    data = [0] * bins
    count = [0] * bins
    for point in input:
@@ -39,15 +39,19 @@ def discretify(input):
 
    # interpolation
    prev = -1
+   interpolated = 0
    for i in range(len(data)):
       value = data[i]
 
       if count[i] != 0 and prev != i - 1 and prev != -1:
          for j in range(prev + 1, i):
             data[j] = data[prev] + (data[i] - data[prev]) * ((j - prev) * 1.0 / (i - prev))
+            interpolated += 1
 
       if count[i] != 0:
          prev = i
+
+   # print str(interpolated * 100.0 / bins) + "% interpolated"
 
    return data
 
@@ -71,12 +75,12 @@ plt.plot([c[1] for c in data], [c[0] for c in data], color='#0000ff')
 currents = [(-x[0], x[1]) for x in currents_flipped]
 
 data = sorted(currents, lambda a, b: (1 if a[1] - b[1] > 0 else -1))
+data2 = discretify(data)
 plt.plot([c[1] for c in data], [c[0] for c in data], color='#ffaaaa')
 sketchy_filter(data)
 plt.plot([c[1] for c in data], [c[0] for c in data], color='#ff0000')
 # plt.plot([c[1] for c in data], [c[0] for c in data], 'ro')
 
-data2 = discretify(data)
 
 data = data1
 plt.plot([i * 2 * pi / len(data) for i in range(len(data))], data, color='#000077')
@@ -90,7 +94,13 @@ plt.plot([i * 2 * pi / len(data) for i in range(len(data))], data, color='#00000
 
 plt.show()
 
+sketchy_filter_bins(data)
 
 plt.plot([x * 2 * pi / len(currents_orig) for x in range(len(currents_orig))], currents_orig, color='#00ff00')
 plt.plot([i * 2 * pi / len(data) for i in range(len(data))], data, color='#000000')
+
+data = [round(d, 5) for d in data]
+
+print "lookup_table = " + str(data)
+# plt.plot([i * 2 * pi / len(data) for i in range(len(data))], data, 'ro', color='#000000')
 plt.show()
