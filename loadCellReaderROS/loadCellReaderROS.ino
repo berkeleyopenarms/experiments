@@ -25,7 +25,7 @@ ros::Publisher force_pub("strain_gauge", &force_msg);
 AccelStepper stepper(AccelStepper::DRIVER, STEPPER_STEP_OUT, STEPPER_DIR_OUT);
 
 void stepperCb( const std_msgs::Float32& position_msg) {
-  long new_pos = (long) (position_msg.data / 1000.0 * STEPS_PER_MM);
+  long new_pos = (long) (position_msg.data * 1000.0 * STEPS_PER_MM);
   stepper.moveTo(new_pos);
 
   char str[256];
