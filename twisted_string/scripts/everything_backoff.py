@@ -12,6 +12,7 @@ class Everything:
     iteration = 0
 
     def reset(self):
+        self.backing_off = False
         self.unwinding = False
         self.fullywound_offset = 0
         self.force_zero = None
@@ -112,13 +113,16 @@ class Everything:
             # rospy.loginfo(self.data_tacho)
 
             if self.current >= 0.999:
+                self.current = 1
                 self.write_csv("data_" + sys.argv[1] + "_iteration" + str(self.iteration) + "_current.csv", self.data_current)
                 self.write_csv("data_" + sys.argv[1] + "_iteration" + str(self.iteration) + "_tacho.csv", self.data_tacho)
                 self.iteration += 1
+                self.backing_off = True
+            if self.current <= 0.051:
                 self.unwinding = True
                 self.fullywound_offset = (tacho - self.tacho_zero)
 
-            self.current += 0.05
+            self.current += 0.05 if not self.backing_off else -0.05
             self.not_moving_counter = 0
 
         current_msg = Float64()
