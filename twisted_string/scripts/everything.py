@@ -9,6 +9,9 @@ from vesc_msgs.msg import VescStateStamped
 import sys
 
 class Everything:
+    unwinding = False
+    fullywound_offset = 0
+
     force_zero = None
     tacho_zero = None
     tacho_prev = None
@@ -66,6 +69,22 @@ class Everything:
 
     def vesc_cb(self, data):
         tacho = data.state.displacement
+
+        if self.unwinding:
+            duty_msg = Float64()
+            duty_msg.data = -0.15
+            self.duty_pub.publish(duty_msg)
+
+            offset = tacho - self.tacho_zero
+            if (self.fullywound_offset > 0 and offset < 0) or (self.fullywound_offset < 0 and offset > 0):
+                duty_msg.data = 0
+                self.duty_pub.publish(duty_msg)
+                rospy.loginfo("finished probably")
+                rospy.signal_shutdown("dieded")
+                exit()
+
+            return
+
         if self.tacho_zero == None:
             self.tacho_zero = tacho
 
@@ -88,13 +107,14 @@ class Everything:
             rospy.loginfo(self.data_current)
             rospy.loginfo(self.data_tacho)
 
-            if self.current == 0.1:
+            if self.current >= 0.999:
                 self.write_csv("data_" + sys.argv[1] + "_current.csv", self.data_current)
                 self.write_csv("data_" + sys.argv[1] + "_tacho.csv", self.data_tacho)
-                rospy.signal_shutdown("sucks")
-                exit()
 
-            self.current += 0.1
+                self.unwinding = True
+                self.fullywound_offset = (tacho - self.tacho_zero)
+
+            self.current += 0.05
             self.not_moving_counter = 0
 
         current_msg = Float64()
