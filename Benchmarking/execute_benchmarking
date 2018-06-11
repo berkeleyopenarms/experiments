@@ -1,0 +1,27 @@
+import numpy as np #will use to create arrays
+import pickle #will use to save data between program launches
+from koko_interface import KokoInterface #this is the API for the robot
+import random
+
+kk = KokoInterface("hekate.cs.berkeley.edu") #creates object of class KokoInterface at the IP in quotes with the name 'kk'
+kk.disable_control() #this turns off any other control currently on the robot (leaves it in gravtiy comp mode)
+
+
+pose_list = pickle.load( open("benchmark_poses_list.p", "rb")) #uses the pickle function to read the binary file created in record_poses.py
+
+comp_pt = [] #initialize a data point list - this will hold the commanded and measured pose at each command
+collected_data = [] #initialize a list that will hold all the comp_pt lists and can be saved to an external file at the end
+
+num_cycles = input("Please enter the number of cycles you would like to test: ")
+
+for i in range(num_cycles): #iterate over the number of cycles
+	random.shuffle(pose_list) #randomly shuffles the order of the list so that it goes to the psoes in a different random order each time
+	for j in range(len(pose_list)): #iterate over the shuffled pose list
+		commanded_pose = pose_list[j] #save the commanded pose to a variable
+		kk.set_cartesian_pose(commanded_pose) #tell the robot to go to the command pose
+		measured_pose = {'t':'s'} #measure the puse using the vive system
+		comp_pt = [commanded_pose, measured_pose] #collect the command pose and measured pose into a list
+		collected_data.append(comp_pt) #put the list into the list of all data
+
+pickle.dump(collected_data, open("benchmark_collected_data.p", "wb")) #uses the pickle function to write a binary file
+print('Your data has been saved in the directory')
