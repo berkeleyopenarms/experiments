@@ -26,7 +26,7 @@ for i in range(num_cycles): #iterate over the number of cycles
 		commanded_position = position_list[j] #save the commanded pose to a variable
 		kk.set_joint_positions(commanded_position) #tell the robot to go to the command pose
 		time.sleep(2)
-		measured_pose = {'t':'s'} #measure the puse using the vive system
+		measured_position = {'t':'s'} #measure the puse using the vive system
 		comp_pt = [commanded_position, measured_position] #collect the command pose and measured pose into a list
 		collected_data.append(comp_pt) #put the list into the list of all data
 

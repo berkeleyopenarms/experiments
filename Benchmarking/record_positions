@@ -28,4 +28,5 @@ else:
 	pickle.dump(position_list, open("benchmark_positions_list.p", "wb")) #uses the pickle function to write a binary file
 	print('Your position list has been saved in the directory')
 
+kk.disable_control()  # this turns off any other control currently on the robot (leaves it in gravtiy comp mode)
 sys.exit()
