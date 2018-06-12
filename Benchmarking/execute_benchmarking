@@ -36,3 +36,6 @@ if num_cycles == 0:
 else:
 	pickle.dump(collected_data, open("benchmark_collected_data.p", "wb")) #uses the pickle function to write a binary file
 	print('Your data has been saved in the directory')
+
+kk.disable_control()  # this turns off any other control currently on the robot (leaves it in gravtiy comp mode)
+sys.exit()
