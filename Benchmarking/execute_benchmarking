@@ -1,13 +1,13 @@
-import numpy as np #will use to create arrays
-import pickle #will use to save data between program launches
+import pickle  # will use to save data between program launches
 import sys
 sys.path.append('../../blue_interface')
-from blue_interface import BlueInterface #this is the API for the robot
+from blue_interface import BlueInterface  # this is the API for the robot
 import random
 import os
+import time
 
-kk = BlueInterface("left","hekate.cs.berkeley.edu") #creates object of class KokoInterface at the IP in quotes with the name 'kk'
-kk.disable_control() #this turns off any other control currently on the robot (leaves it in gravtiy comp mode)
+kk = BlueInterface("left","hekate.cs.berkeley.edu")  # creates object of class KokoInterface at the IP in quotes with the name 'kk'
+kk.disable_control()  # this turns off any other control currently on the robot (leaves it in gravtiy comp mode)
 
 if not os.path.isfile('benchmark_positions_list.p'):
 	print("You should first run 'record_positions.py")
@@ -25,6 +25,7 @@ for i in range(num_cycles): #iterate over the number of cycles
 	for j in range(len(position_list)): #iterate over the shuffled pose list
 		commanded_position = position_list[j] #save the commanded pose to a variable
 		kk.set_joint_positions(commanded_position) #tell the robot to go to the command pose
+		time.sleep(2)
 		measured_pose = {'t':'s'} #measure the puse using the vive system
 		comp_pt = [commanded_position, measured_position] #collect the command pose and measured pose into a list
 		collected_data.append(comp_pt) #put the list into the list of all data
