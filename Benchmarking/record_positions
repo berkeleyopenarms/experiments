@@ -24,6 +24,7 @@ while not done_collecting_positions:
 	else:
 		done_collecting_positions = True #set the variable such that the loop doesn't run again
 
+print(joint_angle_list)
 
 if len(joint_angle_list)==0:
 	print('You did not save any positions')
