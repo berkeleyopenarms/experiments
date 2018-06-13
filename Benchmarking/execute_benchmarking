@@ -35,7 +35,7 @@ for i in range(num_cycles): #iterate over the number of cycles
 		kk.set_joint_positions(location_list[j][0]) #tell the robot to go to a set of joint angles
 		time.sleep(2)
 
-		measured_position = {'t':'s'} #measure the puse using the vive system
+		measured_position = get_vive_tracker_data() #measure the puse using the vive system
 		
 
 		comp_pt = [location_list[j][1], measured_position] #collect the command pose and measured pose into a list
