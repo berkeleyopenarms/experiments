@@ -29,7 +29,7 @@ if len(joint_angle_list)==0:
 	print('You did not save any positions')
 else:
 	pickle.dump(joint_angle_list, open("benchmark_joint_angle_list.p", "wb")) #uses the pickle function to write a binary file
-	pickle.dump(pose_angle_list, open("benchmark_pose_list.p", "wb"))
+	pickle.dump(pose_list, open("benchmark_pose_list.p", "wb"))
 	print('Your position list has been saved in the directory')
 
 kk.disable_control()  # this turns off any other control currently on the robot (leaves it in gravtiy comp mode)
