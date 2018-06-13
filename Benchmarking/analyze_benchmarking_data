@@ -1,0 +1,7 @@
+import pickle
+
+
+data = pickle.load( open("benchmark_collected_data.p", "rb")) #uses the pickle function to read the binary file created in execute_benchmarking
+# This contains a list where each element of a list follows [robot pose, vive_measurement]
+
+print(data[0][1])
