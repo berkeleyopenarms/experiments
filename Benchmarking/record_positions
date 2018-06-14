@@ -14,7 +14,7 @@ pose_list = []
 
 done_collecting_positions = False #create a variable to track when we've collected all the desired poses
 while not done_collecting_positions:
-	s = raw_input("Move the robot to a new position and press enter to record or enter d for done and press enter") #raw_input does not attempt to process the input so we don't have to type out a string in the command line
+	s = raw_input("Move the robot to a new position and press enter to record or enter d for done and press enter")
 	if s != "d": #if the user is not done
 		position = kk.get_joint_positions() #record the pose, this function returns a dictionary object
 		joint_angle_list.append(position)

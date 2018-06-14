@@ -1,7 +1,16 @@
 import pickle
+import rospy
+import sys
+import actionlib
+from std_msgs.msg import Int32
+from std_msgs.msg import Float32
+from geometry_msgs.msg import PoseStamped
 
 
 data = pickle.load( open("benchmark_collected_data.p", "rb")) #uses the pickle function to read the binary file created in execute_benchmarking
 # This contains a list where each element of a list follows [robot pose, vive_measurement]
 
-print(data[0][1])
+#print(data[0][1])
+entry = 2
+print(data[0])
+
