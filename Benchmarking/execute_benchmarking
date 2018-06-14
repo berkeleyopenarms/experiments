@@ -42,9 +42,12 @@ for i in range(num_cycles): #iterate over the number of cycles
 		print('position set')
 		time.sleep(3) #wait for any residual motion to subside
 
-		measured_position = vv.get_vive_tracker_data() #measure the pose using the vive system
+		measured_pose = vv.get_vive_tracker_data() #measure the pose using the vive system
 		#print(measured_position)
-		
+		pos = measured_pose.pose.position
+		ori = measured_pose.pose.orientation
+		measured_position = {'position':[pos.x, pos.y, pos.z], 'orientation':[ori.x, ori.y, ori.z, ori.w]}
+
 		comp_pt = [] #initialize a data point list - this will hold the commanded and measured location at each command
 		comp_pt = [location_list[0], location_list[j][2], measured_position] #collect the command pose and measured pose into a list
 		collected_data.append(comp_pt) #put the list into the list of all data
