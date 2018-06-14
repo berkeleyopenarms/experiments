@@ -2,8 +2,10 @@ import pickle  # will use to save data between program launches
 import sys
 sys.path.append('blue_interface')
 from blue_interface import BlueInterface  # this is the API for the robot
-sys.path.append('blue_internal/blue_vive_tracking/scripts')
-import vive_tracking as vt
+#sys.path.append('blue_internal/blue_vive_tracking/scripts')
+#import vive_tracking as vt
+sys.path.append('../../koko_ws/src/blue_internal/blue_vive_tracking/scripts')
+from vive_tracking import ViveTracker
 import random
 import os
 import time
@@ -11,6 +13,10 @@ import numpy as np
 
 kk = BlueInterface("right","hekate.cs.berkeley.edu")  # creates object of class KokoInterface at the IP in quotes with the name 'kk'
 kk.disable_control()  # this turns off any other control currently on the robot (leaves it in gravtiy comp mode)
+
+vv = ViveTracker()
+
+kk.command_gripper(2.05,.1)
 
 if not os.path.isfile('benchmark_joint_angle_list.p'):
 	print("You should first run 'record_positions.py")
@@ -36,8 +42,8 @@ for i in range(num_cycles): #iterate over the number of cycles
 		print('position set')
 		time.sleep(3) #wait for any residual motion to subside
 
-		measured_position = vt.get_vive_tracker_data() #measure the pose using the vive system
-		print(measured_position)
+		measured_position = vv.get_vive_tracker_data() #measure the pose using the vive system
+		#print(measured_position)
 		
 		comp_pt = [] #initialize a data point list - this will hold the commanded and measured location at each command
 		comp_pt = [location_list[0], location_list[j][2], measured_position] #collect the command pose and measured pose into a list
