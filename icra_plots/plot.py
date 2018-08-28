@@ -25,7 +25,7 @@ def get_intervals(cmd, cmd_data, rel_data):
             if d[0] >= i[0] and d[0] <= i[1]:
                 vive_int.append(d)
         data.append(np.array(vive_int))
-    return data;
+    return data, intervals;
 
 def find_closest_time(time, data):
     data_time = np.array(data)[:,0]
@@ -54,16 +54,28 @@ def plot_points(loc, data, vive):
 def pc_to_brent():
     _, data = load_from_csv("pp_data/cmd.csv")
     _, vive = load_from_csv("pp_data/vive.csv")
+    _, ee_data = load_from_csv("pp_data/ee.csv")
     _, start_end = load_from_csv("pp_data/start_and_end_joints.csv")
 
-    start_vive = get_intervals(start_end[0], data, vive)
-    points = [ x[-1] for x in start_vive ]
+    start_vive, intervals = get_intervals(start_end[0], data, vive)
+
+    data_qwe = []
+    for i in intervals:
+        vive_int = []
+        for d in ee_data:
+            if d[0] >= i[0] and d[0] <= i[1]:
+                vive_int.append(d)
+        data_qwe.append(np.array(vive_int))
+    points = [ x[-1] for x in data_qwe]
 
     vive_points = []
     ee_fk_points = []
     for p in points:
+    # for p in vive[::1000]:
         vive_points.append(p[1:4])
         ee_fk_points.append(find_closest_time(p[0], data)[1:4])
+    print(vive_points)
+    print(ee_fk_points)
     return vive_points, ee_fk_points
 
 def plot_quigley():
