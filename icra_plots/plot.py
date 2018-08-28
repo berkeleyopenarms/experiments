@@ -68,18 +68,18 @@ def pc_to_brent():
     q_xyz = q[:,1:4]
 
     R, t, error = helpers.find_optimal_transform(p_xyz, q_xyz)
-    # print(R.dot(np.asarray([1,2,3])))
-    #
-    # print(q_xyz.shape)
-    # p_xyz = R.dot(p_xyz.T).T + t
-    #
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111, projection='3d')
-    # ax.plot(p_xyz.T[0], p_xyz.T[1], p_xyz.T[2])
-    # ax.plot(q_xyz.T[0], q_xyz.T[1], q_xyz.T[2])
-    # plt.show()
-    #
-    # return
+    print(R.dot(np.asarray([1,2,3])))
+
+    print(q_xyz.shape)
+    p_xyz = R.dot(p_xyz.T).T + t
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot(p_xyz.T[0], p_xyz.T[1], p_xyz.T[2])
+    ax.plot(q_xyz.T[0], q_xyz.T[1], q_xyz.T[2])
+    plt.show()
+
+    return
 
 
     # Philipp's interval code
