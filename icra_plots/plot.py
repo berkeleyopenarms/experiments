@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import helpers
 
 def load_from_csv(path):
     raw = np.genfromtxt(str(path), delimiter=',',dtype=str)
@@ -15,7 +16,7 @@ def get_intervals(cmd, cmd_data, rel_data):
         if np.sum((cmd - j)**2) < 1.0e-4 and 1.0 < cmd_data[i+1,0] - cmd_data[i,0]:
             intervals.append([cmd_data[i,0], cmd_data[i+1,0]])
             # print(cmd_data[i,0]-cmd_data[i+1,0])
-            print(cmd_data[i,0], cmd_data[i+1,0])
+            # print(cmd_data[i,0], cmd_data[i+1,0])
     intervals = np.array(intervals)
 
     data = []
@@ -54,15 +55,40 @@ def plot_points(loc, data, vive):
 def pc_to_brent():
     _, data = load_from_csv("pp_data/cmd.csv")
     _, vive = load_from_csv("pp_data/vive.csv")
-    _, ee_data = load_from_csv("pp_data/ee.csv")
+    _, fk = load_from_csv("pp_data/ee.csv")
     _, start_end = load_from_csv("pp_data/start_and_end_joints.csv")
 
+    # Brent's transform code
+    p_all = vive[100:-100]
+    q_all = fk[100:-100]
+
+    p = p_all[::1]
+    q = np.asarray([find_closest_time(x[0], q_all) for x in p])
+    p_xyz = p[:,1:4]
+    q_xyz = q[:,1:4]
+
+    R, t, error = helpers.find_optimal_transform(p_xyz, q_xyz)
+    # print(R.dot(np.asarray([1,2,3])))
+    #
+    # print(q_xyz.shape)
+    # p_xyz = R.dot(p_xyz.T).T + t
+    #
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.plot(p_xyz.T[0], p_xyz.T[1], p_xyz.T[2])
+    # ax.plot(q_xyz.T[0], q_xyz.T[1], q_xyz.T[2])
+    # plt.show()
+    #
+    # return
+
+
+    # Philipp's interval code
     start_vive, intervals = get_intervals(start_end[0], data, vive)
 
     data_qwe = []
     for i in intervals:
         vive_int = []
-        for d in ee_data:
+        for d in fk:
             if d[0] >= i[0] and d[0] <= i[1]:
                 vive_int.append(d)
         data_qwe.append(np.array(vive_int))
@@ -74,8 +100,19 @@ def pc_to_brent():
     # for p in vive[::1000]:
         vive_points.append(p[1:4])
         ee_fk_points.append(find_closest_time(p[0], data)[1:4])
-    print(vive_points)
+
+    vive_points = np.asarray(vive_points).T
+    ee_fk_points = np.asarray(ee_fk_points).T
     print(ee_fk_points)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    # ax.plot(vive_points[0], vive_points[1], vive_points[2])
+    ax.scatter(ee_fk_points[0], ee_fk_points[1], ee_fk_points[2])
+    plt.show()
+
+    # return
+    # print(ee_fk_points)
     return vive_points, ee_fk_points
 
 def plot_quigley():
