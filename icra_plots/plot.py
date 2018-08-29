@@ -4,6 +4,41 @@ from mpl_toolkits.mplot3d import Axes3D
 import helpers
 from tf.transformations import euler_from_quaternion
 
+def euler_from_quat(quaternion):
+    return euler_from_quaternion(quaternion) # Returns in radians
+
+def calc_statistics(poses, name):
+    x = [] #initialize list of x vive positions
+    y = [] # '' y ''
+    z = [] # '' z ''
+    roll = [] # '' roll ''
+    pitch = [] # '' pitch ''
+    yaw = [] # '' yaw ''
+    for p in poses:
+        x.append(p[0])
+        y.append(p[1])
+        z.append(p[2])
+        print(p)
+        euler = euler_from_quat(p[3:])
+        roll.append(euler[0])
+        pitch.append(euler[1])
+        yaw.append(euler[2])
+
+    stats = {
+        'x_std':np.std(np.array(x)),
+        'y_std':np.std(np.array(y)),
+        'z_std':np.std(np.array(z)),
+        'roll_std':np.std(np.array(roll)),
+        'pitch_std':np.std(np.array(pitch)),
+        'yaw_std':np.std(np.array(yaw))
+        }
+
+    with open(name + '.csv', 'wb') as csv_file:
+        writer = csv.writer(csv_file)
+        for key, value in stats.items():
+            print("{}: {}".format(key, value))
+            writer.writerow([key, value])
+
 def load_from_csv(path):
     raw = np.genfromtxt(str(path), delimiter=',',dtype=str)
     labels = raw[:1]
@@ -40,16 +75,16 @@ def find_closest_time(time, data):
     return data[ind]
 
 
-def plot_points(loc, data, vive):
+def plot_points(loc, data, vive, name="plot"):
 
-    start_vive = get_intervals(loc, data, vive)
-    print(start_vive)
+    start_vive, _ = get_intervals(loc, data, vive)
+    print(start_vive[0].shape)
+    poses = [s[1:] for s in start_vive]
+    calc_statistics(poses, name)
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     for x in start_vive:
-        print(x)
-        print("x")
         data_xyz = x[::40,1:4].T
         ax.plot(data_xyz[0], data_xyz[1], data_xyz[2], linewidth=1)
     plt.show()
@@ -119,37 +154,6 @@ def pc_to_brent():
     # print(ee_fk_points)
     return vive_points, ee_fk_points
 
-def calc_statistics(poses, name):
-    x = [] #initialize list of x vive positions
-    y = [] # '' y ''
-    z = [] # '' z ''
-    roll = [] # '' roll ''
-    pitch = [] # '' pitch ''
-    yaw = [] # '' yaw ''
-    for p in poses:
-        x.append(p[0])
-        y.append(p[1])
-        z.append(p[2])
-        euler = euler_from_quat(p[3:])
-        roll.append(euler[0])
-        pitch.append(euler[1])
-        yaw.append(euler[2])
-
-    stats = {
-        'x_std':np.std(np.array(x)),
-        'y_std':np.std(np.array(y)),
-        'z_std':np.std(np.array(z)),
-        'roll_std':np.std(np.array(roll)),
-        'pitch_std':np.std(np.array(pitch)),
-        'yaw_std':np.std(np.array(yaw))
-        }
-
-    with open(name + '.csv', 'wb') as csv_file:
-        writer = csv.writer(csv_file)
-        for key, value in stats.items():
-            print("{}: {}".format(key, value))
-            writer.writerow([key, value])
-
 def plot_quigley():
     _, data = load_from_csv("q_data/cmd.csv")
     _, vive = load_from_csv("q_data/vive.csv")
@@ -161,8 +165,8 @@ def plot_vive():
     _, data = load_from_csv("pp_data/cmd.csv")
     _, vive = load_from_csv("pp_data/vive.csv")
     _, start_end = load_from_csv("pp_data/start_and_end_joints.csv")
-    plot_points(start_end[0], data, vive)
-    plot_points(start_end[1], data, vive)
+    plot_points(start_end[0], data, vive, "start")
+    plot_points(start_end[1], data, vive, "end")
 
 def plot_traj():
     fig = plt.figure()
