@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import helpers
+import csv
 from tf.transformations import euler_from_quaternion
 
 def euler_from_quat(quaternion):
@@ -30,8 +31,7 @@ def calc_statistics(poses, name):
         'z_std':np.std(np.array(z)),
         'roll_std':np.std(np.array(roll)),
         'pitch_std':np.std(np.array(pitch)),
-        'yaw_std':np.std(np.array(yaw))
-        }
+        'yaw_std':np.std(np.array(yaw))}
 
     with open(name + '.csv', 'wb') as csv_file:
         writer = csv.writer(csv_file)
@@ -76,10 +76,9 @@ def find_closest_time(time, data):
 
 
 def plot_points(loc, data, vive, name="plot"):
-
     start_vive, _ = get_intervals(loc, data, vive)
     print(start_vive[0].shape)
-    poses = [s[1:] for s in start_vive]
+    poses = [s[-1][1:] for s in start_vive]
     calc_statistics(poses, name)
 
     fig = plt.figure()
@@ -88,9 +87,9 @@ def plot_points(loc, data, vive, name="plot"):
         data_xyz = x[::40,1:4].T
         ax.plot(data_xyz[0], data_xyz[1], data_xyz[2], linewidth=1)
     plt.show()
+    return np.array(poses)
 
 ############## plotting code ############################################
-
 def pc_to_brent():
     _, data = load_from_csv("pp_data/cmd.csv")
     _, vive = load_from_csv("pp_data/vive.csv")
@@ -158,15 +157,31 @@ def plot_quigley():
     _, data = load_from_csv("q_data/cmd.csv")
     _, vive = load_from_csv("q_data/vive.csv")
     _, start_end = load_from_csv("q_data/home.csv")
-    plot_points(start_end[0], data, vive)
+    plot_points(start_end[0], data, vive, name="quigley")
 
+def save_plot(x, y, title):
+    fig = plt.figure()
+    plt.plot(x, y, "x")
+    plt.title(title)
+    fig.savefig(title)
 
 def plot_vive():
     _, data = load_from_csv("pp_data/cmd.csv")
     _, vive = load_from_csv("pp_data/vive.csv")
     _, start_end = load_from_csv("pp_data/start_and_end_joints.csv")
-    plot_points(start_end[0], data, vive, "start")
-    plot_points(start_end[1], data, vive, "end")
+
+    p_t = "start"
+    poses = plot_points(start_end[0], data, vive, name=p_t)
+    print(poses)
+    save_plot(poses[:,0],poses[:,1], p_t + "_xy")
+    save_plot(poses[:,0],poses[:,2], p_t + "_xz")
+    save_plot(poses[:,1],poses[:,2], p_t + "_yz")
+
+    p_t = "end"
+    poses = plot_points(start_end[1], data, vive, name="end")
+    save_plot(poses[:,0],poses[:,1], p_t + "_xy")
+    save_plot(poses[:,0],poses[:,2], p_t + "_xz")
+    save_plot(poses[:,1],poses[:,2], p_t + "_yz")
 
 def plot_traj():
     fig = plt.figure()
