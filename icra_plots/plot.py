@@ -60,7 +60,7 @@ def pc_to_brent():
     _, data = load_from_csv("pp_data/cmd.csv")
     _, vive = load_from_csv("pp_data/vive.csv")
     _, fk = load_from_csv("pp_data/ee.csv")
-    _, start_end = load_from_csv("pp_data/start_and_end_joints.csv")
+    _, start_end = load_from_csv("pp_data/start_end_joints.csv")
 
     # Brent's transform code
     p_all = vive[100:-100]
@@ -160,7 +160,7 @@ def plot_quigley():
 def plot_vive():
     _, data = load_from_csv("pp_data/cmd.csv")
     _, vive = load_from_csv("pp_data/vive.csv")
-    _, start_end = load_from_csv("pp_data/start_and_end_joints.csv")
+    _, start_end = load_from_csv("pp_data/start_end_joints.csv")
     plot_points(start_end[0], data, vive)
     plot_points(start_end[1], data, vive)
 
@@ -177,7 +177,7 @@ def plot_traj():
     ax.plot(data_xyz[0], data_xyz[1], data_xyz[2], linewidth=1)
     plt.show()
 
-plot_vive()
-# pc_to_brent()
+# plot_vive()
+pc_to_brent()
 # plot_quigley()
 # plot_traj()
