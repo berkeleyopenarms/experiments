@@ -6,7 +6,8 @@ import csv
 from tf.transformations import euler_from_quaternion
 
 # DATA_DIRECTORY = "pp_data"
-DATA_DIRECTORY = "data_icra/pp/8-29-noi"
+DATA_DIRECTORY = "quigly_data"
+# DATA_DIRECTORY = "data_icra/pp/8-29-noi"
 
 def euler_from_quat(quaternion):
     return euler_from_quaternion(quaternion) # Returns in radians
@@ -51,7 +52,7 @@ def load_from_csv(path):
 def get_intervals(cmd, cmd_data, rel_data):
     intervals = []
     joints = cmd_data[:,-7:]
-    for i, j in enumerate(joints):
+    for i, j in enumerate(joints[:-1]):
         if np.sum((cmd - j)**2) < 1.0e-4 and 1.0 < cmd_data[i+1,0] - cmd_data[i,0]:
             intervals.append([cmd_data[i,0], cmd_data[i+1,0]])
             # print(cmd_data[i,0]-cmd_data[i+1,0])
@@ -77,6 +78,27 @@ def find_closest_time(time, data):
 
     return data[ind]
 
+def match_points(to_be_matched, to_be_matched_from):
+
+    matches = []
+    index = 0
+    for point in to_be_matched:
+        time = point[0]
+        while True:
+            time_current = to_be_matched_from[index][0]
+            if index == len(to_be_matched_from) - 1:
+                matches.append(to_be_matched_from[index])
+                break
+            time_next = to_be_matched_from[index + 1][0]
+
+            if abs(time - time_current) < abs(time - time_next):
+                matches.append(to_be_matched_from[index])
+                break
+
+            index += 1
+
+    return np.asarray(matches)
+
 
 def plot_points(loc, data, vive, name="plot"):
     start_vive, _ = get_intervals(loc, data, vive)
@@ -94,17 +116,21 @@ def plot_points(loc, data, vive, name="plot"):
 
 ############## plotting code ############################################
 def pc_to_brent():
-    _, data = load_from_csv(DATA_DIRECTORY + "/cmd.csv")
+    _, cmd = load_from_csv(DATA_DIRECTORY + "/cmd.csv")
     _, vive = load_from_csv(DATA_DIRECTORY + "/vive.csv")
     _, fk = load_from_csv(DATA_DIRECTORY + "/ee.csv")
-    _, start_end = load_from_csv(DATA_DIRECTORY + "/start_end_joints.csv")
+    # _, start_end = load_from_csv(DATA_DIRECTORY + "/start_end_joints.csv")
+    print("Data loaded")
 
     # Brent's transform code
     p_all = vive[100:-100]
     q_all = fk[100:-100]
 
     p = p_all[::1]
-    q = np.asarray([find_closest_time(x[0], q_all) for x in p])
+    # q = np.asarray([find_closest_time(x[0], q_all) for x in p])
+    q = match_points(p, q_all)
+    print("Points matched")
+    # return
     p_xyz = p[:,1:4]
     q_xyz = q[:,1:4]
 
@@ -199,7 +225,7 @@ def plot_traj():
     ax.plot(data_xyz[0], data_xyz[1], data_xyz[2], linewidth=1)
     plt.show()
 
-plot_vive()
-# pc_to_brent()
+# plot_vive()
+pc_to_brent()
 # plot_quigley()
 # plot_traj()
