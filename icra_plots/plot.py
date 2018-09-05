@@ -8,6 +8,7 @@ from tf.transformations import euler_from_quaternion
 # DATA_DIRECTORY = "pp_data"
 DATA_DIRECTORY = "quigly_data"
 # DATA_DIRECTORY = "data_icra/pp/8-29-noi"
+DATA_DIRECTORY = "quigly_data/9-4-duty_cycle-post-david-tuning"
 
 def euler_from_quat(quaternion):
     return euler_from_quaternion(quaternion) # Returns in radians
@@ -92,6 +93,27 @@ def match_points(to_be_matched, to_be_matched_from):
             time_next = to_be_matched_from[index + 1][0]
 
             if abs(time - time_current) < abs(time - time_next):
+                matches.append(to_be_matched_from[index])
+                break
+
+            index += 1
+
+    return np.asarray(matches)
+
+def match_points_time(to_be_matched, to_be_matched_from):
+
+    matches = []
+    index = 0
+    for point in to_be_matched:
+        time = point[0]
+        while True:
+            time_current = to_be_matched_from[index][0]
+            if index == len(to_be_matched_from) - 1:
+                matches.append(to_be_matched_from[index])
+                break
+            time_next = to_be_matched_from[index + 1][0]
+
+            if time - time_current < time - time_next:
                 matches.append(to_be_matched_from[index])
                 break
 
@@ -188,6 +210,18 @@ def plot_quigley():
     _, start_end = load_from_csv("q_data/home.csv")
     plot_points(start_end[0], data, vive, name="quigley")
 
+def plot_quigley():
+    _, data = load_from_csv(DATA_DIRECTORY + "/cmd.csv")
+    _, vive = load_from_csv(DATA_DIRECTORY + "/vive.csv")
+    _, start_end = load_from_csv(DATA_DIRECTORY + "/home.csv")
+
+    p_t = "quigley"
+    poses = plot_points(start_end[0], data, vive, name=p_t)
+    print(poses)
+    save_plot(poses[:,0],poses[:,1], p_t + "_xy")
+    save_plot(poses[:,0],poses[:,2], p_t + "_xz")
+    save_plot(poses[:,1],poses[:,2], p_t + "_yz")
+
 def save_plot(x, y, title):
     fig = plt.figure()
     plt.plot(x, y, "x")
@@ -212,6 +246,38 @@ def plot_vive():
     save_plot(poses[:,0],poses[:,2], p_t + "_xz")
     save_plot(poses[:,1],poses[:,2], p_t + "_yz")
 
+def plot_err():
+    _, ee = load_from_csv(DATA_DIRECTORY + "/ee.csv")
+    _, cmd = load_from_csv(DATA_DIRECTORY + "/cmd.csv")
+    q = match_points(ee, cmd)
+    err = np.abs(q - ee)
+
+    plt.plot(q[:,0], err[:,8], label="j0")
+    plt.plot(q[:,0], err[:,9], label="j1")
+    plt.plot(q[:,0], err[:,10], label="j2")
+    plt.plot(q[:,0], err[:,11], label="j3")
+    plt.plot(q[:,0], err[:,12], label="j4")
+    plt.plot(q[:,0], err[:,13], label="j5")
+    plt.plot(q[:,0], err[:,14], label="j6")
+    plt.title("error")
+    plt.legend()
+    plt.show()
+
+def plot_curr():
+    plot_err()
+    _, curr = load_from_csv(DATA_DIRECTORY + "/motor.csv")
+    plt.plot(curr[:,0], curr[:,1], label="m0")
+    plt.plot(curr[:,0], curr[:,2], label="m1")
+    plt.plot(curr[:,0], curr[:,3], label="m2")
+    plt.plot(curr[:,0], curr[:,4], label="m3")
+    plt.plot(curr[:,0], curr[:,5], label="m4")
+    plt.plot(curr[:,0], curr[:,6], label="m5")
+    plt.plot(curr[:,0], curr[:,7], label="m6")
+    plt.title("current")
+    plt.legend()
+    plt.show()
+
+
 def plot_traj():
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -227,5 +293,6 @@ def plot_traj():
 
 # plot_vive()
 pc_to_brent()
-# plot_quigley()
+plot_quigley()
 # plot_traj()
+plot_curr()
