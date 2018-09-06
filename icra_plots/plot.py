@@ -6,9 +6,9 @@ import csv
 from tf.transformations import euler_from_quaternion
 
 # DATA_DIRECTORY = "pp_data"
-DATA_DIRECTORY = "quigly_data"
+DATA_DIRECTORY = "optitrack"
 # DATA_DIRECTORY = "data_icra/pp/8-29-noi"
-DATA_DIRECTORY = "quigly_data/9-4-duty_cycle-post-david-tuning"
+# DATA_DIRECTORY = "quigley_data/9-4-duty_cycle-post-david-tuning"
 
 def euler_from_quat(quaternion):
     return euler_from_quaternion(quaternion) # Returns in radians
@@ -45,10 +45,13 @@ def calc_statistics(poses, name):
             writer.writerow([key, value])
 
 def load_from_csv(path):
-    raw = np.genfromtxt(str(path), delimiter=',',dtype=str)
-    labels = raw[:1]
-    data = raw[1:].astype(np.float)
-    return labels, data
+    try:
+        raw = np.genfromtxt(str(path), delimiter=',',dtype=str)
+        labels = raw[:1]
+        data = raw[1:].astype(np.float)
+        return labels, data
+    except Exception:
+        return None, None
 
 def get_intervals(cmd, cmd_data, rel_data):
     intervals = []
@@ -146,7 +149,7 @@ def pc_to_brent():
 
     # Brent's transform code
     p_all = vive[100:-100]
-    q_all = fk[100:-100]
+    q_all = cmd[100:-100]
 
     p = p_all[::1]
     # q = np.asarray([find_closest_time(x[0], q_all) for x in p])
