@@ -6,7 +6,9 @@ import csv
 from tf.transformations import euler_from_quaternion
 
 # DATA_DIRECTORY = "pp_data"
-DATA_DIRECTORY = "optitrack"
+DATA_DIRECTORY = "optitrack/full_data"
+# DATA_DIRECTORY = "optitrack/not_full"
+# DATA_DIRECTORY = "optitrack"
 # DATA_DIRECTORY = "data_icra/pp/8-29-noi"
 # DATA_DIRECTORY = "quigley_data/9-4-duty_cycle-post-david-tuning"
 
@@ -45,13 +47,10 @@ def calc_statistics(poses, name):
             writer.writerow([key, value])
 
 def load_from_csv(path):
-    try:
-        raw = np.genfromtxt(str(path), delimiter=',',dtype=str)
-        labels = raw[:1]
-        data = raw[1:].astype(np.float)
-        return labels, data
-    except Exception:
-        return None, None
+    raw = np.genfromtxt(str(path), delimiter=',',dtype=str)
+    labels = raw[:1]
+    data = raw[1:].astype(np.float)
+    return labels, data
 
 def get_intervals(cmd, cmd_data, rel_data):
     intervals = []
@@ -126,6 +125,9 @@ def match_points_time(to_be_matched, to_be_matched_from):
 
 
 def plot_points(loc, data, vive, name="plot"):
+    print(loc.shape)
+    print(data.shape)
+    print(vive.shape)
     start_vive, _ = get_intervals(loc, data, vive)
     print(start_vive[0].shape)
     poses = [s[-1][1:] for s in start_vive]
@@ -227,7 +229,10 @@ def plot_quigley():
 
 def save_plot(x, y, title):
     fig = plt.figure()
-    plt.plot(x, y, "x")
+    x -= np.min(x)
+    y -= np.min(y)
+    print("blah blah blah", x.shape)
+    plt.plot(x * 1000.0, y * 1000.0, "x")
     plt.title(title)
     fig.savefig(title)
 
