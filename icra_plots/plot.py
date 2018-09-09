@@ -3,10 +3,13 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import helpers
 import csv
+from ssp import make_circle
 from tf.transformations import euler_from_quaternion
+from operator import itemgetter
 
 # DATA_DIRECTORY = "pp_data"
 DATA_DIRECTORY = "optitrack/full_data"
+DATA_DIRECTORY = "ah"
 # DATA_DIRECTORY = "optitrack/not_full"
 # DATA_DIRECTORY = "optitrack"
 # DATA_DIRECTORY = "data_icra/pp/8-29-noi"
@@ -209,11 +212,11 @@ def pc_to_brent():
     # print(ee_fk_points)
     return vive_points, ee_fk_points
 
-def plot_quigley():
-    _, data = load_from_csv("q_data/cmd.csv")
-    _, vive = load_from_csv("q_data/vive.csv")
-    _, start_end = load_from_csv("q_data/home.csv")
-    plot_points(start_end[0], data, vive, name="quigley")
+# def plot_quigley():
+    # _, data = load_from_csv("q_data/cmd.csv")
+    # _, vive = load_from_csv("q_data/vive.csv")
+    # _, start_end = load_from_csv("q_data/home.csv")
+    # plot_points(start_end[0], data, vive, name="quigley")
 
 def plot_quigley():
     _, data = load_from_csv(DATA_DIRECTORY + "/cmd.csv")
@@ -222,19 +225,97 @@ def plot_quigley():
 
     p_t = "quigley"
     poses = plot_points(start_end[0], data, vive, name=p_t)
-    print(poses)
+    # print(poses)
     save_plot(poses[:,0],poses[:,1], p_t + "_xy")
     save_plot(poses[:,0],poses[:,2], p_t + "_xz")
     save_plot(poses[:,1],poses[:,2], p_t + "_yz")
 
+    xyz_mat = poses[:,0:3]
+    xyz_mat = xyz_mat - np.mean(xyz_mat, axis=0)
+    # print("mean", np.mean(xyz_mat, axis=0))
+    # print("sum", np.sum(xyz_mat, axis=0))
+
+    u, s, vh = np.linalg.svd(xyz_mat, full_matrices=True)
+    # print(u.shape)
+    # print(s.shape)
+    # print(vh.shape)
+    print(s)
+    s[2] = 0.0
+    print(vh)
+    print(np.cross(vh[0,:], vh[1,:]))
+    # s[1] = 0.0
+    points_svd = (u[:,:3]*s).dot(vh[:,0:3])
+    save_plot(points_svd[:,0], points_svd[:,1], p_t + "_svd_pc1_pc2")
+
 def save_plot(x, y, title):
     fig = plt.figure()
-    x -= np.min(x)
-    y -= np.min(y)
+    x_u = np.mean(x)
+    y_u = np.mean(y)
+    dist_arry = []
+
+    p_list = [(x_i, y_i) for x_i, y_i in zip(x,y)]
+
+
+
+    c = make_circle(p_list)
+    print(c)
+    x -= c[0]
+    y -= c[1]
+    # x -= x_u
+    # y -= y_u
+
+    for x_i, y_i in zip(x, y):
+        dist = np.sqrt((x_i)**2 + (y_i)**2)
+        dist_arry.append(dist)
+
+    tuple_points = [(d, x_i, y_i) for d, x_i, y_i in zip(dist_arry, x, y)]
+    def func_d(i):
+        return i[0]
+    tuple_points.sort(key=func_d)
+    numpoints = len(tuple_points)
+    percent = 0.9
+    dist_p = []
+    print(int(numpoints*percent))
+    for i in range(int(numpoints*percent)):
+        x_i = tuple_points[i][1]
+        y_i = tuple_points[i][2]
+        dist = np.sqrt((x_i)**2 + (y_i)**2)
+        dist = tuple_points[i][0]
+        dist_p.append(dist)
+    # plt.plot(dist_p)
+    # plt.show()
+
+    # print(tuple_points)
+
+    circle= plt.Circle((0,0), radius=1000*max(dist_arry), color='r', fill=False)
+    circle2= plt.Circle((0,0), radius=1000*max(dist_p), color='b', fill=False)
+    ax=fig.gca()
+    ax.add_patch(circle)
+    ax.add_patch(circle2)
+    print("max_all: {}".format(max(dist_arry)))
+    print("max_pec: {}".format(max(dist_p)))
+    print("std x")
+    print(np.std(x))
+    print("std y")
+    print(np.std(y))
+    print("MSE")
+    sq = np.square(dist_arry)
+    print(np.average(sq))
+    print(np.sqrt(np.average(sq)))
+    print(np.average(dist_arry))
+    print()
+
+    # circle= plt.Circle((0,0), radius=0.1, color='r', fill=False)
+    # ax=fig.gca()
+    # ax.add_artist(circle)
+
     print("blah blah blah", x.shape)
     plt.plot(x * 1000.0, y * 1000.0, "x")
     plt.title(title)
-    fig.savefig(title)
+    plt.xlabel('mm')
+    plt.ylabel('mm')
+    plt.axis('equal')
+    fig.savefig(title, format='eps', dpi=1000)
 
 def plot_vive():
     _, data = load_from_csv(DATA_DIRECTORY + "/cmd.csv")
@@ -272,16 +353,32 @@ def plot_err():
     plt.show()
 
 def plot_curr():
-    plot_err()
+    # plot_err()
     _, curr = load_from_csv(DATA_DIRECTORY + "/motor.csv")
+    curr = curr[0:6000,:]
     plt.plot(curr[:,0], curr[:,1], label="m0")
     plt.plot(curr[:,0], curr[:,2], label="m1")
     plt.plot(curr[:,0], curr[:,3], label="m2")
     plt.plot(curr[:,0], curr[:,4], label="m3")
     plt.plot(curr[:,0], curr[:,5], label="m4")
-    plt.plot(curr[:,0], curr[:,6], label="m5")
-    plt.plot(curr[:,0], curr[:,7], label="m6")
+    # plt.plot(curr[:,0], curr[:,6], label="m5")
+    # plt.plot(curr[:,0], curr[:,7], label="m6")
     plt.title("current")
+    plt.legend()
+    plt.show()
+
+    csq = 18 * np.multiply(curr, curr)
+
+    plt.plot(curr[:,0], csq[:,1], label="m0")
+    plt.plot(curr[:,0], csq[:,2], label="m1")
+    plt.plot(curr[:,0], csq[:,3], label="m2")
+    plt.plot(curr[:,0], csq[:,4], label="m3")
+    plt.plot(curr[:,0], csq[:,5], label="m4")
+
+    plt.plot(curr[:,0], csq[:,1] + csq[:,2] + csq[:,3] + csq[:,4] + csq[:,5], label="all")
+    # plt.plot(curr[:,0], curr[:,6], label="m5")
+    # plt.plot(curr[:,0], curr[:,7], label="m6")
+    plt.title("power")
     plt.legend()
     plt.show()
 
@@ -299,8 +396,15 @@ def plot_traj():
     ax.plot(data_xyz[0], data_xyz[1], data_xyz[2], linewidth=1)
     plt.show()
 
+# fig = plt.figure()
+# circle= plt.Circle((0,0), radius=0.1, color='r', fill=False)
+# ax=fig.gca()
+# ax.add_artist(circle)
+# plt.title("hi")
+# plt.show()
+
 # plot_vive()
-pc_to_brent()
-plot_quigley()
+# pc_to_brent()
+# plot_quigley()
 # plot_traj()
 plot_curr()
