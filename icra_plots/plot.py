@@ -9,7 +9,7 @@ from operator import itemgetter
 
 # DATA_DIRECTORY = "pp_data"
 DATA_DIRECTORY = "optitrack/full_data"
-DATA_DIRECTORY = "ah"
+# DATA_DIRECTORY = "ah"
 # DATA_DIRECTORY = "optitrack/not_full"
 # DATA_DIRECTORY = "optitrack"
 # DATA_DIRECTORY = "data_icra/pp/8-29-noi"
@@ -29,7 +29,7 @@ def calc_statistics(poses, name):
         x.append(p[0])
         y.append(p[1])
         z.append(p[2])
-        print(p)
+        # print(p)
         euler = euler_from_quat(p[3:])
         roll.append(euler[0])
         pitch.append(euler[1])
@@ -57,10 +57,14 @@ def load_from_csv(path):
 
 def get_intervals(cmd, cmd_data, rel_data):
     intervals = []
+    end_pose = 0
     joints = cmd_data[:,-7:]
     for i, j in enumerate(joints[:-1]):
         if np.sum((cmd - j)**2) < 1.0e-4 and 1.0 < cmd_data[i+1,0] - cmd_data[i,0]:
             intervals.append([cmd_data[i,0], cmd_data[i+1,0]])
+
+            end_pose = cmd_data[i,1:]
+
             # print(cmd_data[i,0]-cmd_data[i+1,0])
             # print(cmd_data[i,0], cmd_data[i+1,0])
     intervals = np.array(intervals)
@@ -72,7 +76,7 @@ def get_intervals(cmd, cmd_data, rel_data):
             if d[0] >= i[0] and d[0] <= i[1]:
                 vive_int.append(d)
         data.append(np.array(vive_int))
-    return data, intervals;
+    return data, intervals, end_pose[0:7]
 
 def find_closest_time(time, data):
     data_time = np.array(data)[:,0]
@@ -126,13 +130,50 @@ def match_points_time(to_be_matched, to_be_matched_from):
 
     return np.asarray(matches)
 
+def plot_dist_vs_err():
+    _, d_p = load_from_csv("dist_prec.csv")
+    # print(loc.shape)
+    # print(data.shape)
+    # print(vive.shape)
+    data = []
+    for i in range(8):
+        data.append([d_p[0,i], d_p[1,i], d_p[2,i]])
+    def func_d(i):
+        return i[0]
+    data.sort(key=func_d)
+    data = np.array(data)
+    print(data)
+    plt.plot(data[:,0], data[:,1], label="circle_dist vs distance from home_pos")
+    plt.plot(data[:,0], data[:,2], label="circle_avg vs distance from home_pos")
+    plt.title("home pos")
+    plt.legend()
+    plt.savefig("err_vs_dist_from_home_pos")
+    plt.show()
 
-def plot_points(loc, data, vive, name="plot"):
-    print(loc.shape)
-    print(data.shape)
-    print(vive.shape)
-    start_vive, _ = get_intervals(loc, data, vive)
-    print(start_vive[0].shape)
+    data = []
+    for i in range(8):
+        data.append([d_p[3,i], d_p[1,i], d_p[2,i]])
+    def func_d(i):
+        return i[0]
+    data.sort(key=func_d)
+    data = np.array(data)
+    print(data)
+    plt.plot(data[:,0], data[:,1], label="circle_dist vs distance from base frame")
+    plt.plot(data[:,0], data[:,2], label="circle_avg vs distance from base frame")
+    plt.title("base_frame")
+    plt.legend()
+    plt.savefig("err_vs_dist_from_base_frame")
+    plt.show()
+
+def plot_points(loc, data, vive, name="plot", home=0):
+    # print(loc.shape)
+    # print(data.shape)
+    # print(vive.shape)
+    start_vive, _, end_pose = get_intervals(loc, data, vive)
+    print(end_pose)
+    print("dist_from_home_pos: {}".format(np.linalg.norm(home[0:3] - end_pose[0:3])))
+    print("dist_from_home_frame: {}".format(np.linalg.norm(end_pose[0:3])))
+    # print(start_vive[0].shape)
     poses = [s[-1][1:] for s in start_vive]
     calc_statistics(poses, name)
 
@@ -141,7 +182,7 @@ def plot_points(loc, data, vive, name="plot"):
     for x in start_vive:
         data_xyz = x[::40,1:4].T
         ax.plot(data_xyz[0], data_xyz[1], data_xyz[2], linewidth=1)
-    plt.show()
+    # plt.show()
     return np.array(poses)
 
 ############## plotting code ############################################
@@ -180,7 +221,7 @@ def pc_to_brent():
 
 
     # Philipp's interval code
-    start_vive, intervals = get_intervals(start_end[0], data, vive)
+    start_vive, intervals, _ = get_intervals(start_end[0], data, vive)
 
     data_qwe = []
     for i in intervals:
@@ -222,8 +263,29 @@ def plot_quigley():
     _, data = load_from_csv(DATA_DIRECTORY + "/cmd.csv")
     _, vive = load_from_csv(DATA_DIRECTORY + "/vive.csv")
     _, start_end = load_from_csv(DATA_DIRECTORY + "/home.csv")
+    _, other_8 = load_from_csv("other_8.csv")
+    count = 0
+
+    start_vive, _, home_pose = get_intervals(start_end[0], data, vive)
+
+    for d in other_8:
+        print("point number {}".format(count))
+        p_t = "other_quig" + str(count)
+        poses = plot_points(other_8[count], data, vive, name=p_t, home=home_pose)
+        xyz_mat = poses[:,0:3]
+        u, s, vh = np.linalg.svd(xyz_mat, full_matrices=True)
+        points_svd = (u[:,:3]*s).dot(vh[:,0:3])
+        save_plot(points_svd[:,0], points_svd[:,1], p_t + "_svd_pc1_pc2.eps")
+        # save_plot(poses[:,0],poses[:,1], p_t + "_xy")
+        # save_plot(poses[:,0],poses[:,2], p_t + "_xz")
+        # save_plot(poses[:,1],poses[:,2], p_t + "_yz")
+        count+=1
+        print(" ")
+    return
+
 
     p_t = "quigley"
+
     poses = plot_points(start_end[0], data, vive, name=p_t)
     # print(poses)
     save_plot(poses[:,0],poses[:,1], p_t + "_xy")
@@ -258,7 +320,7 @@ def save_plot(x, y, title):
 
 
     c = make_circle(p_list)
-    print(c)
+    # print(c)
     x -= c[0]
     y -= c[1]
     # x -= x_u
@@ -275,7 +337,7 @@ def save_plot(x, y, title):
     numpoints = len(tuple_points)
     percent = 0.9
     dist_p = []
-    print(int(numpoints*percent))
+    print("num_points: " + str(numpoints))
     for i in range(int(numpoints*percent)):
         x_i = tuple_points[i][1]
         y_i = tuple_points[i][2]
@@ -288,34 +350,38 @@ def save_plot(x, y, title):
     # print(tuple_points)
 
     circle= plt.Circle((0,0), radius=1000*max(dist_arry), color='r', fill=False)
-    circle2= plt.Circle((0,0), radius=1000*max(dist_p), color='b', fill=False)
+    circle2= plt.Circle((0,0), radius=1000*(np.average(dist_arry)), color='b', fill=False)
     ax=fig.gca()
     ax.add_patch(circle)
     ax.add_patch(circle2)
     print("max_all: {}".format(max(dist_arry)))
-    print("max_pec: {}".format(max(dist_p)))
-    print("std x")
-    print(np.std(x))
-    print("std y")
-    print(np.std(y))
-    print("MSE")
-    sq = np.square(dist_arry)
-    print(np.average(sq))
-    print(np.sqrt(np.average(sq)))
-    print(np.average(dist_arry))
-    print()
+    print("average_dis: {}".format(np.average(dist_arry)))
+    # print("max_pec: {}".format(max(dist_p)))
+    # print("std x")
+    # print(np.std(x))
+    # print("std y")
+    # print(np.std(y))
+    # print("MSE")
+    # sq = np.square(dist_arry)
+    # print(np.average(sq))
+    # print(np.sqrt(np.average(sq)))
 
     # circle= plt.Circle((0,0), radius=0.1, color='r', fill=False)
     # ax=fig.gca()
     # ax.add_artist(circle)
 
-    print("blah blah blah", x.shape)
+    # print("blah blah blah", x.shape)
     plt.plot(x * 1000.0, y * 1000.0, "x")
     plt.title(title)
     plt.xlabel('mm')
     plt.ylabel('mm')
-    plt.axis('equal')
-    fig.savefig(title, format='eps', dpi=1000)
+    axis=plt.gca()
+    axis.set_xlim([-2.5, 2.5])
+    axis.set_ylim([-2.5, 2.5])
+    axis.set_xticks([x / 10.0 for x in range(-25, 30, 5)])
+    axis.set_yticks([x / 10.0 for x in range(-25, 30, 5)])
+    axis.set_aspect('equal')
+    fig.savefig("lim_"+ title, format='eps', dpi=5000)
 
 def plot_vive():
     _, data = load_from_csv(DATA_DIRECTORY + "/cmd.csv")
@@ -352,10 +418,40 @@ def plot_err():
     plt.legend()
     plt.show()
 
+def integrate(t, y):
+    num = len(t)
+    array = [0]
+    for i in range(num-1):
+        array.append(array[i] + (t[i+1]-t[i]) * (y[i]) )
+    return t, y, np.array(array)
+
+def plot_integrate(t, y):
+    num = len(t)
+    array = [0]
+    for i in range(num-1):
+        array.append(array[i] + (t[i+1]-t[i]) * (y[i]) )
+
+    fig, ax1 = plt.subplots()
+
+    ax1.plot(t, array, label="integrated")
+
+    ax2 = ax1.twinx()
+    # ax2.plot(t, s2, 'r.')
+    # ax2.set_ylabel('sin', color='r')
+
+    plt.plot(t, y, color='r', label="orig")
+
+    plt.title("power_integrated")
+    # plt.legend()
+    # plt.show()
+    fig.savefig("heat_power.eps", format='eps', dpi=5000)
+
 def plot_curr():
     # plot_err()
     _, curr = load_from_csv(DATA_DIRECTORY + "/motor.csv")
-    curr = curr[0:6000,:]
+    st = curr[0,0]
+    curr[:,0] = curr[:,0] - st
+    curr = curr[0:8000,:]
     plt.plot(curr[:,0], curr[:,1], label="m0")
     plt.plot(curr[:,0], curr[:,2], label="m1")
     plt.plot(curr[:,0], curr[:,3], label="m2")
@@ -365,9 +461,10 @@ def plot_curr():
     # plt.plot(curr[:,0], curr[:,7], label="m6")
     plt.title("current")
     plt.legend()
-    plt.show()
+    # plt.show()
 
     csq = 18 * np.multiply(curr, curr)
+    fig = plt.figure()
 
     plt.plot(curr[:,0], csq[:,1], label="m0")
     plt.plot(curr[:,0], csq[:,2], label="m1")
@@ -375,12 +472,98 @@ def plot_curr():
     plt.plot(curr[:,0], csq[:,4], label="m3")
     plt.plot(curr[:,0], csq[:,5], label="m4")
 
-    plt.plot(curr[:,0], csq[:,1] + csq[:,2] + csq[:,3] + csq[:,4] + csq[:,5], label="all")
+    power = csq[:,1] + csq[:,2] + csq[:,3] + csq[:,4] + csq[:,5]
+    plt.plot(curr[:,0], power, label="all")
     # plt.plot(curr[:,0], curr[:,6], label="m5")
     # plt.plot(curr[:,0], curr[:,7], label="m6")
     plt.title("power")
     plt.legend()
-    plt.show()
+    fig.savefig("power.eps", format='eps', dpi=5000)
+    # plt.show()
+
+    t, m0, im0 = integrate(curr[:,0], csq[:,1])
+    t, m1, im1 = integrate(curr[:,0], csq[:,2])
+    t, m2, im2 = integrate(curr[:,0], csq[:,3])
+    t, m3, im3 = integrate(curr[:,0], csq[:,4])
+    t, m4, im4 = integrate(curr[:,0], csq[:,5])
+    t, m5, im5 = integrate(curr[:,0], csq[:,6])
+    t, m6, im6 = integrate(curr[:,0], csq[:,7])
+
+    fig, ax1 = plt.subplots()
+
+    ax1.plot(t, im0, label="integrated m0")
+    ax1.plot(t, im1, label="integrated m1")
+    ax1.plot(t, im2, label="integrated m2")
+    ax1.plot(t, im3, label="integrated m3")
+    ax1.plot(t, im4, label="integrated m4")
+    ax1.plot(t, im5, label="integrated m5")
+    ax1.plot(t, im6, label="integrated m6")
+    ax2 = ax1.twinx()
+    # ax2.plot(t, s2, 'r.')
+    # ax2.set_ylabel('sin', color='r')
+
+    ax2.plot(t, m0, label="power m0")
+    ax2.plot(t, m1, label="power m1")
+    ax2.plot(t, m2, label="power m2")
+    ax2.plot(t, m3, label="power m3")
+    ax2.plot(t, m4, label="power m4")
+    ax2.plot(t, m5, label="power m5")
+    ax2.plot(t, m6, label="power m6")
+    fig.savefig("all_heat_power.eps", format='eps', dpi=5000)
+    # plt.plot(t, y, color='r', label="orig")
+
+    plt.title("power_integrated")
+    plt.legend()
+    # plt.show()
+##########################################################
+    fig, ax1 = plt.subplots()
+
+    ax1.plot(t, m0, label="power m0")
+    ax1.plot(t, m1, label="power m1")
+    ax1.plot(t, m2, label="power m2")
+    ax1.plot(t, m3 + m4 + m5 + m6, label="power m3, m4, m5, m6")
+    ax1.set_ylabel('Power (Watt)', color='r')
+
+    ax2 = ax1.twinx()
+    # ax2.plot(t, s2, 'r.')
+    # ax2.set_ylabel('sin', color='r')
+
+    ax2.plot(t, im0, label="integrated m0")
+    ax2.plot(t, im1, label="integrated m1")
+    ax2.plot(t, im2, label="integrated m2")
+    ax2.plot(t, im3 + im4 + im5 + im6, label="power m3, m4, m5, m6")
+    ax2.set_ylabel('Joule (Watt * Seconds)', color='r')
+    # plt.plot(t, y, color='r', label="orig")
+
+    plt.title("just 3 power_integrated")
+    plt.legend()
+    # plt.show()
+    fig.savefig("3_heat_power.eps", format='eps', dpi=5000)
+
+    # plot_integrate(curr[:,0], power)
+    fig, ax1 = plt.subplots()
+
+    ax1.plot(t, m0, label="power m0")
+    ax1.plot(t, m1, label="power m1")
+    ax1.plot(t, m2, label="power m2")
+    ax1.plot(t, m3 + m4 + m5 + m6, label="power m3, m4, m5, m6")
+    ax1.set_ylabel('Power (Watt)', color='r')
+
+    ax2 = ax1.twinx()
+    # ax2.plot(t, s2, 'r.')
+    # ax2.set_ylabel('sin', color='r')
+
+    ax2.plot(t, im0, label="integrated m0")
+    ax2.plot(t, im1, label="integrated m1")
+    ax2.plot(t, im2, label="integrated m2")
+    ax2.plot(t, im3 + im4 + im5 + im6, label="power m3, m4, m5, m6")
+    ax2.set_ylabel('Joule (Watt * Seconds)', color='r')
+    # plt.plot(t, y, color='r', label="orig")
+
+    plt.title("no legend just 3 power_integrated")
+    # plt.legend()
+    # plt.show()
+    fig.savefig("no_legend_3_heat_power.eps", format='eps', dpi=5000)
 
 
 def plot_traj():
@@ -405,6 +588,7 @@ def plot_traj():
 
 # plot_vive()
 # pc_to_brent()
-# plot_quigley()
+# plot_dist_vs_err()
+plot_quigley()
 # plot_traj()
-plot_curr()
+# plot_curr()
